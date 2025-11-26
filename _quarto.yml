@@ -1,8 +1,9 @@
 project:
   type: website
+  output-dir: _site
 
 website:
-  title: "shiny-python-neuropsych-extractor"
+  title: "Shiny Python neuropsych-extractor"
   navbar:
     left:
       - href: index.qmd
@@ -16,6 +17,3 @@ format:
       - brand
     css: styles.css
     toc: true
-
-
-
