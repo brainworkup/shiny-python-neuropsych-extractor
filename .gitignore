@@ -220,3 +220,7 @@ __marimo__/
 .venv/
 output/
 outputs/
+dashboard-tips/
+claude_extract/
+*.pdf
+*.zip
