@@ -12,6 +12,8 @@ import numpy as np
 from scipy import stats
 import re
 from pathlib import Path
+from shiny import App, ui, render, reactive
+from shiny.types import FileInfo
 
 
 def classify_range(pct):
@@ -111,41 +113,37 @@ class PDFSummaryExtractor:
     
     # Section headers that indicate domain changes
     SECTION_HEADERS = {
-        'VALIDITY': 'Validity',
-        'ESTIMATED PREMORBID': 'Premorbid Estimate', 
-        'INTELLECTUAL FUNCTIONING': 'General Cognitive Ability',
-        'ATTENTION/WORKING MEMORY': 'Attention/Executive',
-        'PROCESSING SPEED': 'Attention/Executive',
-        'LANGUAGE': 'Verbal/Language',
-        'EXECUTIVE FUNCTIONING': 'Attention/Executive',
-        'VISUOSPATIAL': 'Visual Perception/Construction',
-        'MEMORY': 'Memory',
-        'PSYCHIATRIC': 'Emotional/Behavioral/Personality',
-        'BEHAVIORAL FUNCTIONING': 'Emotional/Behavioral/Personality',
+        "VALIDITY": "Validity",
+        "ESTIMATED PREMORBID": "Premorbid Estimate",
+        "INTELLECTUAL FUNCTIONING": "General Cognitive Ability",
+        "ATTENTION/EXECUTIVE FUNCTIONING": "Attention/Executive",
+        "LANGUAGE": "Verbal/Language",
+        "VISUOSPATIAL": "Visual Perception/Construction",
+        "MEMORY": "Memory",
+        "PSYCHIATRIC": "Emotional/Behavioral/Social/Personality",
     }
     
     # Test battery headers
     TEST_HEADERS = {
-        'WAIS-IV': ('wais4', 'WAIS-IV', 'npsych_test'),
-        'WAIS-V': ('wais5', 'WAIS-5', 'npsych_test'),
-        'WMS-IV': ('wms4', 'WMS-IV', 'npsych_test'),
-        'Wechsler Memory Scale IV': ('wms4', 'WMS-IV', 'npsych_test'),
-        'WRAT-5': ('wrat5', 'WRAT-5', 'npsych_test'),
-        'DKEFS CWIT': ('dkefs', 'D-KEFS Color-Word Interference', 'npsych_test'),
-        'DKEFS VERBAL FLUENCY': ('dkefs', 'D-KEFS Verbal Fluency', 'npsych_test'),
-        'D-KEFS': ('dkefs', 'D-KEFS', 'npsych_test'),
-        'NAB': ('nab', 'NAB', 'npsych_test'),
-        'CVLT 3 Brief': ('cvlt3', 'CVLT-3 Brief', 'npsych_test'),
-        'CVLT-3': ('cvlt3', 'CVLT-3', 'npsych_test'),
-        'TRAIL MAKING TEST': ('tmt', 'Trail Making Test', 'npsych_test'),
-        'WCST': ('wcst', 'WCST', 'npsych_test'),
-        'Clock Drawing': ('cdt', 'Clock Drawing Test', 'npsych_test'),
-        'Rey 15': ('rey15', 'Rey 15-Item Test', 'npsych_test'),
-        'PAI Scale': ('pai', 'PAI', 'rating_scale'),
-        'PAI': ('pai', 'PAI', 'rating_scale'),
-        'BDI-II': ('bdi2', 'BDI-II', 'rating_scale'),
-        'BAI': ('bai', 'BAI', 'rating_scale'),
-        'DSM-CCS': ('dsm_ccs', 'DSM-5 Cross-Cutting', 'rating_scale'),
+        "WAIS-IV": ("wais4", "WAIS-IV", "npsych_test"),
+        "WAIS-V": ("wais5", "WAIS-5", "npsych_test"),
+        "WMS-IV": ("wms4", "WMS-IV", "npsych_test"),
+        "Wechsler Memory Scale IV": ("wms4", "WMS-IV", "npsych_test"),
+        "WRAT-5": ("wrat5", "WRAT-5", "npsych_test"),
+        "DKEFS CWIT": ("dkefs", "D-KEFS Color-Word Interference", "npsych_test"),
+        "DKEFS VERBAL FLUENCY": ("dkefs", "D-KEFS Verbal Fluency", "npsych_test"),
+        "D-KEFS": ("dkefs", "D-KEFS", "npsych_test"),
+        "NAB": ("nab", "NAB", "npsych_test"),
+        "CVLT 3 Brief": ("cvlt3", "CVLT-3 Brief", "npsych_test"),
+        "CVLT-3": ("cvlt3", "CVLT-3", "npsych_test"),
+        "TRAIL MAKING TEST": ("tmt", "Trail Making Test", "npsych_test"),
+        "WCST": ("wcst", "WCST", "npsych_test"),
+        "Clock Drawing": ("cdt", "Clock Drawing Test", "npsych_test"),
+        "Rey 15": ("rey15", "Rey 15-Item Test", "npsych_test"),
+        "PAI": ("pai", "PAI", "rating_scale"),
+        "BDI-II": ("bdi2", "BDI-II", "rating_scale"),
+        "BAI": ("bai", "BAI", "rating_scale"),
+        "DSM-CCS": ("dsm_ccs", "DSM-5 Cross-Cutting", "rating_scale"),
     }
     
     # Behavioral/psychiatric measures (go to neurobehav.csv)
@@ -211,16 +209,16 @@ class PDFSummaryExtractor:
                 percentile = compute_percentile(score, 't_score')
             
             return {
-                'scale': scale_name,
-                'raw_score': raw_score,
-                'score': score,
-                'percentile': percentile,
-                'range': classify_range(percentile) if percentile else None,
-                'score_type': 't_score',
-                'test': 'pai',
-                'test_name': 'PAI',
-                'test_type': 'rating_scale',
-                'domain': 'Emotional/Behavioral/Personality',
+                "scale": scale_name,
+                "raw_score": raw_score,
+                "score": score,
+                "percentile": percentile,
+                "range": classify_range(percentile) if percentile else None,
+                "score_type": "t_score",
+                "test": "pai",
+                "test_name": "PAI",
+                "test_type": "rating_scale",
+                "domain": "Emotional/Behavioral/Social/Personality",
             }
         
         # Find where numeric data starts
@@ -343,17 +341,17 @@ class PDFSummaryExtractor:
                         current_test = (test_id, test_name, test_type)
                         # Set domain for behavioral tests
                         if test_id in self.BEHAVIORAL_TESTS:
-                            current_domain = 'Emotional/Behavioral/Personality'
+                            current_domain = "Emotional/Behavioral/Social/Personality"
                         break
                     # Or if it's the PAI Scale header specifically
                     if key == 'PAI Scale' and 'T Score' in line:
                         current_test = (test_id, test_name, test_type)
-                        current_domain = 'Emotional/Behavioral/Personality'
+                        current_domain = "Emotional/Behavioral/Social/Personality"
                         break
                     # PAI scales appearing in data rows
                     if test_id == 'pai':
                         current_test = ('pai', 'PAI', 'rating_scale')
-                        current_domain = 'Emotional/Behavioral/Personality'
+                        current_domain = "Emotional/Behavioral/Social/Personality"
             
             # Skip header rows
             if 'Raw Score' in line or 'Standard Score' in line:
@@ -374,15 +372,47 @@ class PDFSummaryExtractor:
         
         return pd.DataFrame(self.records)
     
+    def normalize_scale(self, val):
+        if pd.isna(val):
+            return None
+        s = str(val).lower()
+        s = re.sub(r'\([^)]*\)', ' ', s)
+        s = re.sub(r'[^a-z0-9 ]+', ' ', s)
+        s = re.sub(r'\s+', ' ', s)
+        return s.strip()
+
     def merge_with_lookup(self, df):
         """Merge extracted data with lookup table."""
         if self.lookup_df is None:
             return df
         
         # Clean scale names for matching
-        df['scale_clean'] = df['scale'].str.lower().str.strip()
+        df['scale_raw'] = df['scale']
+        df['scale_clean'] = df['scale'].apply(self.normalize_scale)
         lookup = self.lookup_df.copy()
-        lookup['scale_clean'] = lookup['scale'].str.lower().str.strip()
+        lookup['scale_clean'] = lookup['scale'].apply(self.normalize_scale)
+
+        alias_map = {}
+        if 'aliases' in lookup.columns:
+            for _, row in lookup.iterrows():
+                alias_field = row.get('aliases')
+                if pd.isna(alias_field): continue
+                aliases = re.split(r'[|,]', str(alias_field))
+                for a in aliases:
+                    a_norm = self.normalize_scale(a)
+                    if not a_norm: continue
+                    alias_map[(a_norm, row.get('test'))] = (row['scale_clean'], row.get('test'))
+                    alias_map[(a_norm, None)] = (row['scale_clean'], row.get('test'))
+
+        def resolve_alias(row):
+            key = (row['scale_clean'], row.get('test'))
+            if key in alias_map: return alias_map[key]
+            key = (row['scale_clean'], None)
+            if key in alias_map: return alias_map[key]
+            return row['scale_clean'], row.get('test')
+
+        resolved = df.apply(resolve_alias, axis=1, result_type='expand')
+        df['scale_clean'], df['test'] = resolved[0], resolved[1]
         
         # Merge on scale and test
         merged = df.merge(
@@ -497,10 +527,12 @@ class PDFSummaryExtractor:
 def main():
     """Main entry point."""
     import sys
-    
-    pdf_path = sys.argv[1] if len(sys.argv) > 1 else '/mnt/user-data/uploads/Summary_Table.pdf'
-    lookup_path = sys.argv[2] if len(sys.argv) > 2 else '/mnt/user-data/uploads/neuropsych_lookup_table.csv'
-    output_dir = sys.argv[3] if len(sys.argv) > 3 else '/mnt/user-data/outputs'
+
+    pdf_path = sys.argv[1] if len(sys.argv) > 1 else "Summary_Table.pdf"
+    lookup_path = (
+        sys.argv[2] if len(sys.argv) > 2 else "~/Dropbox/neuropsych_lookup_table.csv"
+    )
+    output_dir = sys.argv[3] if len(sys.argv) > 3 else "outputs"
     
     extractor = PDFSummaryExtractor(pdf_path, lookup_path)
     neurocog, neurobehav = extractor.process(output_dir)
@@ -514,5 +546,98 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+# Shiny App UI
+app_ui = ui.page_fluid(
+    ui.h2("PDF Summary Sheet Extractor"),
+    ui.p(
+        "Upload a PDF summary sheet and optional lookup table to extract neuropsych data."
+    ),
+    ui.layout_sidebar(
+        ui.sidebar(
+            ui.input_file("pdf_file", "Upload PDF Summary Sheet", accept=[".pdf"]),
+            ui.input_file(
+                "lookup_file", "Upload Lookup Table (optional)", accept=[".csv"]
+            ),
+            ui.input_action_button("process", "Process PDF", class_="btn-primary"),
+        ),
+        ui.output_text_verbatim("status"),
+        ui.h4("Neurocognitive Data"),
+        ui.output_data_frame("neurocog_table"),
+        ui.download_button("download_neurocog", "Download neurocog.csv"),
+        ui.h4("Neurobehavioral Data"),
+        ui.output_data_frame("neurobehav_table"),
+        ui.download_button("download_neurobehav", "Download neurobehav.csv"),
+    ),
+)
+
+
+# Shiny App Server
+def server(input, output, session):
+    # Reactive values to store results
+    results = reactive.Value(None)
+
+    @reactive.effect
+    @reactive.event(input.process)
+    def _():
+        pdf_info: list[FileInfo] | None = input.pdf_file()
+
+        if not pdf_info:
+            return
+
+        pdf_path = pdf_info[0]["datapath"]
+
+        # Get lookup file if provided
+        lookup_info: list[FileInfo] | None = input.lookup_file()
+        lookup_path = lookup_info[0]["datapath"] if lookup_info else None
+
+        # Process the PDF
+        extractor = PDFSummaryExtractor(pdf_path, lookup_path)
+        neurocog, neurobehav = extractor.process()
+
+        # Store results
+        results.set({"neurocog": neurocog, "neurobehav": neurobehav})
+
+    @output
+    @render.text
+    def status():
+        if results() is None:
+            return "No files processed yet. Upload a PDF and click Process."
+
+        neurocog = results()["neurocog"]
+        neurobehav = results()["neurobehav"]
+        return f"Extraction complete!\nNeurocog: {len(neurocog)} records\nNeurobehav: {len(neurobehav)} records"
+
+    @output
+    @render.data_frame
+    def neurocog_table():
+        if results() is None:
+            return pd.DataFrame()
+        return results()["neurocog"][
+            ["scale", "test", "score", "percentile", "range", "domain"]
+        ]
+
+    @output
+    @render.data_frame
+    def neurobehav_table():
+        if results() is None:
+            return pd.DataFrame()
+        return results()["neurobehav"][
+            ["scale", "test", "score", "percentile", "range", "domain"]
+        ]
+
+    @session.download(filename="neurocog.csv")
+    def download_neurocog():
+        if results() is None:
+            return ""
+        return results()["neurocog"].to_csv(index=False)
+
+    @session.download(filename="neurobehav.csv")
+    def download_neurobehav():
+        if results() is None:
+            return ""
+        return results()["neurobehav"].to_csv(index=False)
+
 
 app = App(app_ui, server)
